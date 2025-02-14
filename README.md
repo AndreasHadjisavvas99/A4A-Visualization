@@ -1,6 +1,6 @@
 # File Upload & Visualization Tool for A4A
 
-A React application that allows users to upload JSON files, extract data, customize traces, and visualize them using Plotly.js. This project works alongside [A4A](https://github.com/AndreasHadjisavvas99/a4a) to enhance visualization capabilities.
+A React application that allows users to upload JSON files, extract data, customize traces, and visualize them using Plotly.js. This project works alongside [A4A](https://github.com/matheospower/a4a) to enhance visualization capabilities.
 
 ## Features
 
@@ -17,11 +17,11 @@ A React application that allows users to upload JSON files, extract data, custom
 
 - **Node.js** (Ensure you have Node.js installed: [Download here](https://nodejs.org/))
 - **npm** or **yarn** (Package manager)
-- **A4A Backend** (Follow the setup instructions for [A4A](https://github.com/AndreasHadjisavvas99/a4a))
+- **A4A Backend** (Follow the setup instructions for [A4A](https://github.com/matheospower/a4a))
 
-### [Steps](https://github.com/AndreasHadjisavvas99/a4a)
+### Steps
 
-1. [Clone this repository:](https://github.com/AndreasHadjisavvas99/a4a)
+1. Clone this repository:
    ```sh
    git clone https://github.com/your-username/file-upload-visualization.git
    cd file-upload-visualization
