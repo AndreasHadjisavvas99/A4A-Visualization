@@ -56,6 +56,7 @@ A React application that allows users to upload JSON files, extract data, custom
  ├── 📄 TraceCustomization.js    # Component for customizing trace attributes
  ├── 📄 utils.js                 # Utility functions (data extraction, GraphQL requests)
  ├── 📄 styles.css               # Styling file
+ ├── 📄 TraceCustomization.css  # Styling file
 ```
 
 ## JSON File Format
