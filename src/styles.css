@@ -6,6 +6,7 @@ body {
   color: #333; /* Neutral text color */
 }
 
+
 /* Layout styles */
 .container {
   display: flex;
@@ -82,58 +83,6 @@ body {
   background-color: #0056b3;
 }
 
-#data-table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 8px 8px 0 0;
-  overflow: hidden;
-}
-
-#data-table thead tr {
-  background-color: #009879;
-  color: #ffffff;
-  text-align: center;
-  font-weight: bold;
-}
-
-#data-table th, #data-table td {
-  padding: 12px 15px;
-  text-align: center;
-  border-bottom: 1px solid #ddd;
-}
-
-.scrollable-body {
-  max-height: 600px;   /* Adjust the height as needed */
-  overflow-y: auto;    /* Enable vertical scrolling */
-  display: block;
-  border: 1px solid #ddd;
-}
-
-#data-table-body {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-#data-table-body td {
-  border: 1px solid #ddd; /* Add borders between cells (columns and rows) */
-  padding: 12px 15px;
-  text-align: center;
-}
-
-#data-table-body tr {
-  border-bottom: 1px solid #ddd; /* Add bottom border to separate rows */
-}
-
-#data-table-body tr:nth-of-type(even) {
-  background-color: #f9f9f9;
-}
-
-#data-table-body tr:hover {
-  background-color: #e6f7ff;
-  transition: background-color 0.3s ease;
-}
 
 /* Trace Header Row */
 .trace-header {
@@ -143,32 +92,6 @@ body {
   color: #333;
 }
 
-
-/*#data-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 16px;
-}
-  
-#data-table th,
-#data-table td {
-  border: 1px solid #ddd;
-  padding: 10px;
-}
-  
-#data-table th {
-  background-color: #f2f2f2;
-  text-align: left;
-  font-weight: bold;
-}
-
-#data-table tr:nth-child(even) {
-  background-color: #fafafa; 
-}
-
-#data-table tr:hover {
-  background-color: #f1f1f1; 
-} */
   
 /* Input styles */
 input,
@@ -219,7 +142,7 @@ button:active {
 
 /* Advanced customization panel */
 .advanced-customization {
-  margin-top: 20px;
+  display: 'flex',
 }
 
 /* Spacing between sections */
@@ -256,4 +179,41 @@ button:active {
 .styled-table tbody tr:hover {
     background-color: #f1f1f1;
     cursor: pointer;
+}
+
+#axis-selection {
+  background-color: #f5f5f5;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  width: 250px;
+}
+
+#axis-selection label {
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+#axis-selection select {
+  padding: 5px;
+  border-radius: 4px;
+}
+
+#axis-selection button {
+  /* background-color: #007bff; */
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+#file-upload {
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  /*text-align: center;*/
+  width: 250px;
+}
+#select-analysis {
+  width: 350px;
 }

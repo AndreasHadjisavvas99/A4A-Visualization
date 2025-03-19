@@ -1,11 +1,12 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
-import FileUploadAndDisplay from './FileUploadAndDisplay'; // Make sure this path is correct
+import ReactDOM from 'react-dom/client'; // Use "react-dom/client" in React 18
+import DataVis from './FileUploadAndDisplay'; // Ensure the path is correct
 import './index.css';
 
-ReactDOM.render(
+const root = ReactDOM.createRoot(document.getElementById('root'));
+
+root.render(
   <React.StrictMode>
-    <FileUploadAndDisplay />
-  </React.StrictMode>,
-  document.getElementById('root')
+    <DataVis/>
+  </React.StrictMode>
 );
