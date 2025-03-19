@@ -4,7 +4,7 @@ import TraceCustomization from './TraceCustomization';
 import Plot from 'react-plotly.js';
 import './styles.css';
 import { DataGrid } from "@mui/x-data-grid";
-import { handleTitleChange,handleXAxisTitleChange, handleYAxisTitleChange, handleZAxisTitleChange, handleGlobalChartTypeChange, handleAdvancedCustomizationToggle} from './handles';
+import { handleTitleChange,handleXAxisTitleChange, handleYAxisTitleChange, handleZAxisTitleChange, handleGlobalChartTypeChange} from './handles';
 import { handleSaveVisualization } from './SaveVisualization';
 import generatePlotData from "./generatePlotData";
 import { COLOR_PALETTES, generatePieColors } from './utils';

@@ -4,11 +4,12 @@ A React application that allows users to upload JSON files, extract data, custom
 
 ## Features
 
-- Upload JSON files to extract and visualize data
+- Upload JSON files to extract and visualize data or Fetch Data from database
 - Customize chart titles, axes labels, and trace configurations
 - Supports multiple chart types (Line, Bar, Pie, etc.)
 - Advanced customization for individual traces
 - Save visualization configurations using GraphQL mutations
+- Save Individual Layout configurations for future use
 - Seamless integration with A4A for extended functionalities
 
 ## Installation
@@ -97,4 +98,3 @@ The uploaded JSON file should be structured as follows:
 
 - Support for additional chart types
 - Improve error handling for file uploads
-- Replace JSON file uploads with direct database result retrieval for visualization customization
