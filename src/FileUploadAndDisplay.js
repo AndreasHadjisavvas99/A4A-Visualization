@@ -616,7 +616,7 @@ const DataVis = () => {
                                     xaxis: { title: { text: xAxisTitle } },
                                     yaxis: { title: { text: yAxisTitle } },
                                     bargap: layoutConfig.bargap,
-                                    barmode: layoutConfig.barmode
+                                    barmode: layoutConfig.barmode,
                                 }}
                             />
                         </div>

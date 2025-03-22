@@ -238,7 +238,7 @@ const mutationMap = {
     `,
 };
 
-const createVisualizationMutation = `
+/*const createVisualizationMutation = `
     mutation createVisualization($data: VisualizationInput!) {
         createVisualization(data: $data) {
             success
@@ -253,7 +253,22 @@ const createVisualizationMutation = `
             }
         }
     }
+`; */
+
+const createVisualizationMutation = `
+    mutation createVisualization($input: VisualizationInput!) {
+        createVisualization(input: $input) {
+            id
+            name
+            axis_labels   
+            analysis_goal  
+            split_by  
+            date_created  
+            date_updated 
+        }
+    }
 `;
+
 
 
 export const handleSaveVisualization = async (
@@ -266,7 +281,6 @@ export const handleSaveVisualization = async (
     splitTitle,
 ) => {
     let layoutIds = [];
-
     for (let i = 0; i < traceConfigs.length; i++) {
         const mutation = mutationMap[chartTypes[i]];
         const variables = { data: traceConfigs[i] };
@@ -309,11 +323,11 @@ export const handleSaveVisualization = async (
         dateCreated: current_date,
         dateUpdated: current_date,
     };
-
     try {
         const visualizationResult = await sendGraphQLRequest(createVisualizationMutation, {
             data: visualizationDoc,
         });
+        console.log(visualizationResult);
 
         if (visualizationResult) {
             const createResponse = visualizationResult.data.createVisualization;
