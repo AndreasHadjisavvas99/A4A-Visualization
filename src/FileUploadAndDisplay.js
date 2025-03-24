@@ -5,7 +5,7 @@ import Plot from 'react-plotly.js';
 import './styles.css';
 import { DataGrid } from "@mui/x-data-grid";
 import { handleTitleChange,handleXAxisTitleChange, handleYAxisTitleChange, handleZAxisTitleChange, handleGlobalChartTypeChange} from './handles';
-import { handleSaveVisualization } from './SaveVisualization';
+import { handleSaveVisualization, handleUpdateVisualization } from './SaveVisualization';
 import generatePlotData from "./generatePlotData";
 import { COLOR_PALETTES, generatePieColors } from './utils';
 
@@ -155,14 +155,38 @@ const DataVis = () => {
             columnNames,
             splitBy
         );
-    
         if (success) {
             console.log("Visualization saved successfully!");
             setSaveSuccess(true); 
             setTimeout(() => setSaveSuccess(false), 3000);
         }
     };
-    
+    const handleUpdate = async () => {
+        console.log("🔄 Updating current visualization...");
+      
+        const success = await handleUpdateVisualization(
+          selectedVisualization, // Assumes this is always the loaded/active one
+          selectedAnalysis,
+          traceConfigs,
+          chartTypes,
+          sendGraphQLRequest,
+          customTitle,
+          columnNames,
+          splitBy
+        );
+      
+        if (success) {
+          console.log("✅ Visualization updated successfully!");
+          setSaveSuccess(true);
+          setTimeout(() => setSaveSuccess(false), 3000);
+        } else {
+          console.error("❌ Visualization update failed.");
+        }
+    };
+      
+      
+      
+
 
     const populateTable = (results) => {
     
@@ -630,6 +654,10 @@ const DataVis = () => {
                             Save Visualization
                         </button>
 
+                        <button onClick={handleUpdate}>
+                            Update Visualization
+                        </button>
+
                         {/* ✅ Show success message when saved */}
                         {saveSuccess && (
                             <div style={{
@@ -644,10 +672,6 @@ const DataVis = () => {
                             </div>
                         )}
                     </div>
-
-
-
-
                 </section>
 
                 {/* Bar Global Customization (Only Appears if there is a "Bar" chart) */}

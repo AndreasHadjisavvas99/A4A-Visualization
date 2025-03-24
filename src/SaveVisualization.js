@@ -394,6 +394,18 @@ const createVisualizationMutation = `
   }
 }`;
 
+export const updateVisualizationMutation = `
+  mutation UpdateVisualization($id: ID!, $data: VisualizationInput!) {
+    updateVisualization(id: $id, data: $data) {
+      success
+      visualization {
+        id
+        name
+      }
+    }
+  }
+`;
+
 
 
 export const handleSaveVisualization = async (
@@ -406,9 +418,12 @@ export const handleSaveVisualization = async (
     splitTitle,
 ) => {
     let layoutIds = [];
+    let layoutCreationSucceeded = true;
+
     for (let i = 0; i < traceConfigs.length; i++) {
         const mutation = mutationMap[chartTypes[i]];
         const variables = { data: traceConfigs[i] };
+
         try {
             const result = await sendGraphQLRequest(mutation, variables);
             if (result) {
@@ -429,13 +444,19 @@ export const handleSaveVisualization = async (
                     layoutIds.push(layoutId);
                 } else {
                     console.error("❌ Missing ID in response:", createResponse);
+                    layoutCreationSucceeded = false;
                 }
             } else {
                 console.error("❌ No data in response:", result);
+                layoutCreationSucceeded = false;
             }
         } catch (error) {
             console.error("❌ Error during GraphQL request:", error);
+            layoutCreationSucceeded = false;
         }
+    }
+    if (!layoutCreationSucceeded || layoutIds.length === 0) {
+        return false; // ❌ Layout creation failed, don’t proceed to visualization
     }
 
     const current_date = new Date().toISOString();
@@ -452,7 +473,6 @@ export const handleSaveVisualization = async (
         const visualizationResult = await sendGraphQLRequest(createVisualizationMutation, {
             data: visualizationDoc,
         });
-        console.log(visualizationResult);
 
         if (visualizationResult) {
             const createResponse = visualizationResult.data.createVisualization;
@@ -473,7 +493,69 @@ export const handleSaveVisualization = async (
     return true;
 };
 
-
+export const handleUpdateVisualization = async (
+    selectedVisualizationId,
+    selectedAnalysis,
+    traceConfigs,
+    chartTypes,
+    sendGraphQLRequest,
+    customTitle,
+    columnNames,
+    splitTitle,
+  ) => {
+    const layoutIds = [];
+  
+    for (let i = 0; i < traceConfigs.length; i++) {
+      const mutation = mutationMap[chartTypes[i]];
+      const variables = { data: traceConfigs[i] };
+  
+      try {
+        const { data } = await sendGraphQLRequest(mutation, variables);
+        const response = data?.[`create${chartTypes[i]}`];
+        const layout = response?.[chartTypes[i].toLowerCase()];
+  
+        if (response?.success && layout?.id) {
+          layoutIds.push(layout.id);
+        } else {
+          console.error("❌ Layout creation failed:", response);
+          return false;
+        }
+      } catch (error) {
+        console.error("❌ Error creating layout:", error);
+        return false;
+      }
+    }
+  
+    const updatedVisualization = {
+      name: customTitle,
+      axisLabels: [columnNames[0], columnNames[1]],
+      analysisGoal: selectedAnalysis,
+      layout: layoutIds,
+      splitBy: splitTitle,
+      dateUpdated: new Date().toISOString(),
+    };
+  
+    try {
+      const { data } = await sendGraphQLRequest(updateVisualizationMutation, {
+        id: selectedVisualizationId,
+        data: updatedVisualization,
+      });
+  
+      const result = data?.updateVisualization;
+  
+      if (result?.success) {
+        console.log("✅ Visualization updated! ID:", result.visualization.id);
+        return true;
+      } else {
+        console.error("❌ Update failed:", result);
+        return false;
+      }
+    } catch (error) {
+      console.error("❌ Error updating visualization:", error);
+      return false;
+    }
+  };
+  
 
 export const saveTraceToDB = async (trace, chartType) => {
     const mutation = mutationMap[chartType];
