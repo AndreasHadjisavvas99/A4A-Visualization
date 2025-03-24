@@ -237,7 +237,131 @@ const mutationMap = {
         }
     `,
 };
-
+const updateMutationMap = {
+    Bar: `
+      mutation updateBar($id: ID!, $data: BarInput!) {
+        updateBar(id: $id, data: $data) {
+          success
+          bar {
+            id
+            traceName
+            opacity
+            color
+            barmode
+            bargap
+            orientation
+            hasText
+          }
+        }
+      }
+    `,
+    Line: `
+      mutation updateLine($id: ID!, $data: LineInput!) {
+        updateLine(id: $id, data: $data) {
+          success
+          line {
+            id
+            traceName
+            opacity
+            color
+            mode
+            fill
+          }
+        }
+      }
+    `,
+    Pie: `
+      mutation updatePie($id: ID!, $data: PieInput!) {
+        updatePie(id: $id, data: $data) {
+          success
+          pie {
+            id
+            traceName
+            opacity
+            palette
+            hole
+          }
+        }
+      }
+    `,
+    ScatterPolar: `
+      mutation updateScatterpolar($id: ID!, $data: ScatterPolarInput!) {
+        updateScatterpolar(id: $id, data: $data) {
+          success
+          scatterpolar {
+            id
+            traceName
+            opacity
+            color
+            fill
+          }
+        }
+      }
+    `,
+    Violin: `
+      mutation updateViolin($id: ID!, $data: ViolinInput!) {
+        updateViolin(id: $id, data: $data) {
+          success
+          violin {
+            id
+            traceName
+            opacity
+            color
+            meanline
+            box
+          }
+        }
+      }
+    `,
+    Box: `
+      mutation updateBox($id: ID!, $data: BoxInput!) {
+        updateBox(id: $id, data: $data) {
+          success
+          box {
+            id
+            traceName
+            opacity
+            color
+            orientation
+            boxpoints
+            jitter
+            boxmean
+          }
+        }
+      }
+    `,
+    Histogram: `
+      mutation updateHistogram($id: ID!, $data: HistogramInput!) {
+        updateHistogram(id: $id, data: $data) {
+          success
+          histogram {
+            id
+            traceName
+            opacity
+            color
+            orientation
+            barmode
+            bargap
+          }
+        }
+      }
+    `,
+    Heatmap: `
+      mutation updateHeatmap($id: ID!, $data: HeatmapInput!) {
+        updateHeatmap(id: $id, data: $data) {
+          success
+          heatmap {
+            id
+            traceName
+            opacity
+          }
+        }
+      }
+    `,
+  };
+  
+  
+  
 /*const createVisualizationMutation = `
     mutation createVisualization($data: VisualizationInput!) {
         createVisualization(data: $data) {
@@ -256,18 +380,19 @@ const mutationMap = {
 `; */
 
 const createVisualizationMutation = `
-    mutation createVisualization($input: VisualizationInput!) {
-        createVisualization(input: $input) {
-            id
-            name
-            axis_labels   
-            analysis_goal  
-            split_by  
-            date_created  
-            date_updated 
-        }
+    mutation CreateVisualization($data: VisualizationInput!) {
+  createVisualization(data: $data) {
+    visualization {
+      id
+      name
+      axisLabels
+      analysisGoal
+      splitBy
+      dateCreated
+      dateUpdated
     }
-`;
+  }
+}`;
 
 
 
@@ -351,22 +476,61 @@ export const handleSaveVisualization = async (
 
 
 export const saveTraceToDB = async (trace, chartType) => {
-    const variables = { data: { ...trace, bookmark: 1 } };
     const mutation = mutationMap[chartType];
+    const variables = {
+      data: {
+        ...trace,
+        bookmark: true,
+      },
+    };
+  
+    try {
+        const result = await sendGraphQLRequest(mutation, variables);
+        const saved = result?.data?.[`create${chartType}`]?.[chartType.toLowerCase()];
+        return saved || null;
+    } catch (error) {
+        console.error("❌ Error creating trace:", error);
+        return null;
+    }
+};
+  
+
+export const updateTraceInDB = async (trace, chartType) => {
+    const mutation = updateMutationMap[chartType];
+    const variables = {
+        id: trace.id, // ✅ required by your GraphQL schema
+        data: {
+          ...trace,
+        },
+    };
+      
+
+    try {
+        const result = await sendGraphQLRequest(mutation, variables);
+        console.log(result);
+        return !!result?.data?.[`update${chartType}`];
+    } catch (error) {
+        console.error("❌ Error updating trace:", error);
+        return false;
+    }
+};
+  
+export const deleteTraceFromDB = async (id, chartType) => {
+    const mutation = `
+        mutation Delete${chartType}($id: ID!) {
+            delete${chartType}(id: $id) {
+                success
+            }
+        }
+    `;
+    const variables = { id };
     
     try {
         const result = await sendGraphQLRequest(mutation, variables);
-
-        if (result) {
-            console.log("✔ Trace Bookmarked Successfully:", result.data.createLine);
-            return result.data.createLine;
-        } else {
-            console.error("❌ Failed to save trace");
-            return null;
-        }
+        return result?.data?.[`delete${chartType}`]?.success || false;
     } catch (error) {
-        console.error("❌ Error saving trace:", error);
-        return null;
+        console.error(`❌ Error deleting ${chartType}:`, error);
+        return false;
     }
 };
 

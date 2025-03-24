@@ -1,26 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { COLOR_PALETTES } from './utils';
 import './TraceCustomization.css';
-import { saveTraceToDB } from './SaveVisualization';
+import { saveTraceToDB, updateTraceInDB, deleteTraceFromDB} from './SaveVisualization';
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { fetchLayoutsByType } from './SaveVisualization';
-import {
-    Accordion,
-    AccordionSummary,
-    AccordionDetails,
-    Card,
-    CardContent,
-    Typography,
-    TextField,
-    Select,
-    MenuItem,
-    FormControl,
-    InputLabel,
-    Slider,
-    Switch,
-    Grid,
-    Button
-} from "@mui/material";
+import { Accordion,AccordionSummary, AccordionDetails, Card, CardContent, Typography, TextField, Select, MenuItem, FormControl,
+    InputLabel, Slider, Switch, Grid, Button, Stack} from "@mui/material";
 
 const TraceCustomization = ({
     traceConfigs,
@@ -45,15 +30,40 @@ const TraceCustomization = ({
         Heatmap: new Set(['bookmrk','opacity'])
     };
 
-    const handleSaveTrace = async (config, chartType) => {
-
+    const handleSaveTrace = async (config, chartType, index) => {
         if (config.bookmark === 1) {
             console.log("ℹ️ Trace already saved.");
             return;
         }
-        saveTraceToDB(config, chartType);
+        const newTrace = {
+            ...config,
+            id: undefined,   
+            bookmark: true,   
+          };
+        const result = await saveTraceToDB(newTrace, chartType);
+        console.log("aa", result);
+        if (result?.id) {
+            handleChange(index, "id", result.id);
+            handleChange(index, "bookmark", true);
+            await fetchAndSetTraces();
+        }
+    };
+      
+    const handleUpdateTrace = async (config, chartType, index) => {    
+        const result = await updateTraceInDB(config, chartType);
+        await fetchAndSetTraces();
+        console.log(result);
     };
 
+    const handleDeleteTrace = async (config, chartType, index) => {
+        const success = await deleteTraceFromDB(config.id, chartType);
+        if (success) {
+            handleChange(index, "id", undefined);
+            handleChange(index, "bookmark", false);
+            await fetchAndSetTraces();
+        }
+    };
+      
     const handleLoadSavedTrace = (selectedTraceId, traceIndex) => {
         if (selectedTraceId === "none") {
             console.log("🛑 No trace selected. Resetting configuration.");
@@ -119,20 +129,19 @@ const TraceCustomization = ({
         }
     }, [chartTypes]);
 
+
+    const fetchAndSetTraces = async () => {
+        const newSavedTraces = {};
+        for (const chartType of new Set(chartTypes)) {
+            const traces = await fetchLayoutsByType(chartType); // ✅ Fetch traces
+            console.log(traces);
+            newSavedTraces[chartType] = traces.filter(trace => trace.bookmark === true); // ✅ Store traces
+        }
+
+        setSavedTraces(newSavedTraces);
+    };
+
     useEffect(() => {
-        const fetchAndSetTraces = async () => {
-            const newSavedTraces = {};
-
-            for (const chartType of new Set(chartTypes)) {
-                const traces = await fetchLayoutsByType(chartType); // ✅ Fetch traces
-                console.log(traces);
-                newSavedTraces[chartType] = traces.filter(trace => trace.bookmark === true); // ✅ Store traces
-            }
-
-            setSavedTraces(newSavedTraces);
-            console.log("Fetched Layouts:", newSavedTraces); // ✅ Log fetched layouts
-        };
-
         fetchAndSetTraces();
     }, [chartTypes]);
     
@@ -141,22 +150,19 @@ const TraceCustomization = ({
     //handle trace specific attributes (color, opacity, hasText etc.)
     const handleChange = (index, field, value) => {
         setTraceConfigs((prevConfigs) =>
-            prevConfigs.map((trace, i) => {
-                if (i !== index) return trace; // other traces unchanged
-    
-                const isModified = field !== "bookmark"; // any change except 'bookmark' means it's modified
-                const shouldResetId = isModified && trace.id; // ✅ Only reset ID if there was one
-    
-                return {
-                    ...trace,
-                    [field]: value,
-                    bookmark: field === "bookmark" ? value : false, // reset bookmark
-                    ...(shouldResetId ? { id: undefined } : {}), // remove ID if modified (to save as new)
+          prevConfigs.map((trace, i) => {
+            if (i !== index) return trace;
+      
+            return {
+                ...trace,
+                [field]: value,
+                bookmark: field === "bookmark" ? value : trace.bookmark, // ✅ only change if field is 'bookmark'
+                id: field === "id" ? value : trace.id, // ✅ preserve ID unless being set
                 };
             })
         );
     };
-    
+      
     //handle global attributes (barmode, bargap, etc.) only if they already exist
     const handleGlobalChange = (field, value) => {
         traceConfigs.forEach((_, index) => {
@@ -524,20 +530,36 @@ const TraceCustomization = ({
                                         
                                         {/* 💾 Save Button */}
                                         <Grid item xs={12}>
-                                            <Button
-                                                variant={traceConfig.bookmark === true ? "contained" : "outlined"}
-                                                color="primary"
-                                                onClick={() => {
-                                                    console.log(traceConfig)
-                                                    handleChange(index, "bookmark", true);
-                                                    handleSaveTrace(traceConfig, chartTypes[index])
-                                                    console.log(traceConfig)
-                                                    }
-                                                }
-                                                disabled={traceConfig.bookmark === true}
-                                            >
-                                                {traceConfig.bookmark === 1 ? "✔ Saved" : "💾 Save Trace"}
-                                            </Button>
+                                            <Stack direction="row" spacing={2}>
+                                                {/* Save Button */}
+                                                <Button
+                                                    variant={traceConfig.bookmark ? "contained" : "outlined"}
+                                                    color="primary"
+                                                    onClick={() => handleSaveTrace(traceConfig, chartTypes[index], index)}
+                                                    //disabled={traceConfig.bookmark}
+                                                >
+                                                    💾 Save Trace
+                                                </Button>
+
+                                                {/* Update Button */}
+                                                <Button
+                                                    variant="outlined"
+                                                    color="secondary"
+                                                    onClick={() => handleUpdateTrace(traceConfig, chartTypes[index], index)}
+                                                    disabled={!traceConfig.bookmark}
+                                                >
+                                                    🔄 Update Trace
+                                                </Button>
+                                                <Button
+                                                    variant="outlined"
+                                                    color="error"
+                                                    onClick={() => handleDeleteTrace(traceConfig, chartTypes[index], index)}
+                                                    disabled={!traceConfig.bookmark}
+                                                    >
+                                                    Delete Trace
+                                                    </Button>
+                                            </Stack>
+
                                         </Grid>
                                         {/* 🔻 Load Saved Trace Dropdown */}
                                         <Grid item xs={12} sm={6}>
