@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { generateColor, extractData, sendGraphQLRequest, mutationMap, createVisualizationMutation} from './utils';
+import { generateColor, sendGraphQLRequest} from './utils';
 import TraceCustomization from './TraceCustomization';
 import Plot from 'react-plotly.js';
-import './styles.css';
-import { DataGrid } from "@mui/x-data-grid";
+import { DataGrid} from "@mui/x-data-grid";
+import {Button} from "@mui/material";
 import { handleTitleChange,handleXAxisTitleChange, handleYAxisTitleChange, handleZAxisTitleChange, handleGlobalChartTypeChange} from './handles';
-import { handleSaveVisualization, handleUpdateVisualization } from './SaveVisualization';
+import { handleSaveVisualization, getVisualizationQuery, deleteVisualizationMutation} from './SaveVisualization';
 import generatePlotData from "./generatePlotData";
 import { COLOR_PALETTES, generatePieColors } from './utils';
+import './styles.css';
 
 const DataVis = () => {
     const [tableData, setTableData] = useState([]);
@@ -24,7 +25,6 @@ const DataVis = () => {
     const [y_data, setYData] = useState([]);
     const [z_data, setZData] = useState([]);
     const [layoutConfig, setLayoutConfig] = useState({ barmode: 'group', bargap: 0.1 });
-    const [analysisRequest, setAnalysisRequest] = useState("");
     const [analysisResults, setAnalysisResults] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -40,6 +40,8 @@ const DataVis = () => {
     const [selectedVisualization, setSelectedVisualization] = useState("");
     const [visualizationOptions, setVisualizationOptions] = useState([]);
     const [saveSuccess, setSaveSuccess] = useState(false);
+    const [savedVisualizationId, setSavedVisualizationId] = useState(null);
+
     
     const resetState = () => {
         setTableData([]);
@@ -61,7 +63,8 @@ const DataVis = () => {
         setSelectedYAxis("");
         setSelectedZAxis("");
         setError(null);
-        
+        setSavedVisualizationId(null);
+
     };
     // INPUT METHODS
     // 1. File Upload
@@ -118,7 +121,6 @@ const DataVis = () => {
         try {
         
             const result = await sendGraphQLRequest(query, {});
-            console.log("fetched analysis", result);
             
             if (result?.data?.resultRequest?.length > 0) {
                 const data = result.data.resultRequest[0].results;
@@ -145,45 +147,87 @@ const DataVis = () => {
     };
     
     const handleSave = async () => {
-        console.log("Saving visualization...");
-        const success = await handleSaveVisualization(
+        const id = await handleSaveVisualization(
             selectedAnalysis,
             traceConfigs,
             chartTypes,
             sendGraphQLRequest,
             customTitle,
-            columnNames,
+            xAxisTitle,yAxisTitle,zAxisTitle,
             splitBy
         );
-        if (success) {
+        if (id) {
             console.log("Visualization saved successfully!");
-            setSaveSuccess(true); 
-            setTimeout(() => setSaveSuccess(false), 3000);
-        }
-    };
-    const handleUpdate = async () => {
-        console.log("🔄 Updating current visualization...");
-      
-        const success = await handleUpdateVisualization(
-          selectedVisualization, // Assumes this is always the loaded/active one
-          selectedAnalysis,
-          traceConfigs,
-          chartTypes,
-          sendGraphQLRequest,
-          customTitle,
-          columnNames,
-          splitBy
-        );
-      
-        if (success) {
-          console.log("✅ Visualization updated successfully!");
-          setSaveSuccess(true);
-          setTimeout(() => setSaveSuccess(false), 3000);
+            setSavedVisualizationId(id);
+            setSaveSuccess("saved");
         } else {
-          console.error("❌ Visualization update failed.");
+            setSaveSuccess("error");
+        }
+        setTimeout(() => setSaveSuccess(null), 3000);
+        fetchVisualizationOptions();
+    };
+
+    const handleUpdate = async () => {
+        if (!savedVisualizationId) {
+            console.warn("⚠ No visualization ID found — can't update. Did you save first?");
+            setSaveSuccess("error");
+            setTimeout(() => setSaveSuccess(null), 3000);
+            return;
+        }
+        console.log("🔄 Updating current visualization...");
+        const id = await handleSaveVisualization(
+            selectedAnalysis,
+            traceConfigs,
+            chartTypes,
+            sendGraphQLRequest,
+            customTitle,
+            xAxisTitle,yAxisTitle,zAxisTitle,
+            splitBy,
+            savedVisualizationId // <-- pass the ID here!
+        );
+        if (id) {
+            console.log("✅ Visualization updated!");
+            setSaveSuccess("updated");
+        } else {
+            setSaveSuccess("error");
+        }
+        setTimeout(() => setSaveSuccess(null), 3000);
+        fetchVisualizationOptions();
+    };
+
+    const handleDelete = async () => {
+        try {
+            // Step 1: Get layout references
+            const variables = { id: savedVisualizationId };
+            const visResult = await sendGraphQLRequest(getVisualizationQuery, variables);
+            const layouts = visResult?.data?.visualization?.layout || [];
+
+            // Step 1: Delete layouts
+            for (const layout of layouts) {
+                if (!layout.bookmark) {
+                  const deleteMutation = `
+                    mutation deleteLayout($id: ID!) {
+                      delete${layout.__typename}(id: $id) {
+                        success
+                      }
+                    }
+                  `;
+              
+                  console.log(`Deleting ${layout.__typename} layout with ID: ${layout.id}`);
+                  await sendGraphQLRequest(deleteMutation, { id: layout.id });
+                }
+              }
+
+            // Step 3: Delete visualization
+            await sendGraphQLRequest(deleteVisualizationMutation, { id: savedVisualizationId });
+            fetchVisualizationOptions();
+            setSavedVisualizationId(null);
+        } catch {
+            console.log(error);
         }
     };
-      
+
+          
       
       
 
@@ -209,8 +253,6 @@ const DataVis = () => {
         setColumnNames1(formattedColumns);
     };
     
-
-
     const handlePrintTrace = (e) => {
         console.log(traceConfigs);
     };
@@ -259,11 +301,16 @@ const DataVis = () => {
         const newZData = selectedZAxis === "None" ? [] : Object.values(groupedTraces).map(trace => trace.z);
     
         // Create trace configurations
-        traces = Object.keys(groupedTraces).map((traceName, index) => ({
-            traceName,
-            color: generateColor(index, Object.keys(groupedTraces).length),
-            bookmark: false,  
-        }));
+        traces = Object.keys(groupedTraces).map((traceName, index) => {
+            const existing = traceConfigs.find(tc => tc.traceName === traceName);
+            return {
+                ...(existing?.id && { id: existing.id }), // 👈 Preserve existing layout ID
+                traceName,
+                color: generateColor(index, Object.keys(groupedTraces).length),
+                bookmark: false,
+            };
+        });
+        
         console.log(traces);
     
         // Apply extracted data to the state
@@ -312,52 +359,16 @@ const DataVis = () => {
         setLoading(true);
         setError(null);
     
-        const query = `
-        query getVisualization($id: ID!) { 
-            visualization(id: $id) { 
-                id
-                name
-                analysisGoal
-                splitBy
-                axisLabels
-                layout { 
-                    __typename  
-                    ... on Bar {
-                        id bookmark bargap barmode color hasText opacity orientation traceName
-                    }
-                    ... on Line {
-                        id bookmark color fill mode opacity orientation traceName
-                    }
-                    ... on Pie {
-                        id bookmark opacity palette traceName hole
-                    }
-                    ... on Histogram {
-                        id bookmark bargap barmode color opacity orientation traceName
-                    }
-                    ... on ScatterPolar {
-                        id bookmark color fill opacity traceName
-                    }
-                    ... on Box {
-                        id bookmark boxmean boxpoints color jitter opacity orientation traceName
-                    }
-                    ... on Violin {
-                        id bookmark box color meanline opacity traceName
-                    }
-                    ... on Heatmap {
-                        id bookmark opacity traceName
-                    }
-                }
-            } 
-        }`;
-    
         try {
             const variables = { id: selectedVisualization };
+            const result = await sendGraphQLRequest(getVisualizationQuery, variables);
 
-            const result = await sendGraphQLRequest(query, variables);
-            console.log(result);
     
             if (result?.data?.visualization) {
                 const vizData = result.data.visualization;
+                const id = result.data.visualization.id;
+                setSavedVisualizationId(id);
+                
                 setSelectedAnalysis(vizData.analysisGoal);
                 fetchAnalysisResults();
                 const extractedPlotTypes = vizData.layout.map((trace) => trace.__typename);
@@ -366,8 +377,8 @@ const DataVis = () => {
                 const selectedYAxis = vizData.axisLabels[1];
                 const selectedZAxis = vizData.axisLabels[2];
 
-                let groupedTraces = {};
-                analysisResults.forEach((item) => {
+                const groupedTraces = {};
+                (analysisResults || []).forEach((item) => {
                     const traceName = item[splitField] || "Default";
 
                     if (!groupedTraces[traceName]) {
@@ -397,8 +408,9 @@ const DataVis = () => {
                 setXData(newXData);
                 setYData(newYData);
                 setZData(newZData);
-
+                setSavedVisualizationId(id);
                 setLoading(false);
+                
             } else {
                 setError("Visualization not found.");
             }
@@ -458,21 +470,25 @@ const DataVis = () => {
     return (
         <div style={{ display: 'flex', gap: '20px', padding: '20px' }}>
         {/* LEFT COLUMN: Data Table & Advanced Customization */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '5px' }}>
             
             {/* File Upload Section (Added Back) */}
-            <section id="file-upload">
+            <section id="file-upload" className="section">
                 <h3>Upload JSON File</h3>
-                <input type="file" onChange={handleFileChange} style={{ width: '100%', padding: '5px' }} />
+                <input 
+                    type="file" 
+                    onChange={handleFileChange}
+                    className="file-input"
+                />
             </section>
             <section id="select-analysis">
                 <label>Select Analysis:</label>
                 <select
+                    id="analysis-select"
                     value={selectedAnalysis}
                     onChange={(e) => {
                         setSelectedAnalysis(e.target.value);
                     }}
-                    style={{ width: "80%", padding: "5px" }}
                 >
                     <option value="">Select an Analysis</option>
                     {analysisOptions.map((option) => (
@@ -483,13 +499,10 @@ const DataVis = () => {
                 </select>
                 <button
                     onClick={() => fetchAnalysisResults(selectedAnalysis)}
-                    style={{ marginLeft: "10px", padding: "5px 10px" }}
                     disabled={!selectedAnalysis}
                 >
                     Fetch Results
                 </button>
-                {loading && <p>Loading analysis options...</p>}
-                {error && <p style={{ color: "red" }}>{error}</p>}
             </section>
 
             <section id="axis-selection">
@@ -529,11 +542,11 @@ const DataVis = () => {
                         ))}
                     </select>
                 </div>
-                <button onClick={handleApply} style={{ marginLeft: "10px", padding: "5px 10px"}}> Apply </button>
+                <button onClick={handleApply}> Apply </button>
             </section>
 
             {/*Load Existing Visualization*/}
-            <section id="load-visualization">
+            <section id="axis-selection">
                 <label>Select a Visualization:</label>
                 <select
                     value={selectedVisualization}
@@ -546,7 +559,6 @@ const DataVis = () => {
                 </select>
                 <button 
                     onClick={fetchVisualization} 
-                    style={{ marginLeft: "10px", padding: "5px 10px" }}
                     disabled={!selectedVisualization}
                 >
                     Load Visualization
@@ -584,48 +596,48 @@ const DataVis = () => {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
             {/* Customization Section */}
-            <section id="customization" className="customization-section" style={{ flex: 'none', padding: '10px', background: '#f8f9fa', borderRadius: '5px' }}>
+            <section id="customization" className="customization-section">
                 <h2>Customize</h2>
-                <div className='form-group'>
+
+                <div className="form-group">
                     <label>Chart Title:</label>
-                    <input type="text" value={customTitle} onChange={handleTitleChange(setCustomTitle)} style={{ width: '100%' }} />
+                    <input type="text" value={customTitle} onChange={handleTitleChange(setCustomTitle)} />
                 </div>
 
-                <div className='form-group'>
+                <div className="form-group">
                     <label>X Axis Title:</label>
-                    <input type="text" value={xAxisTitle} onChange={handleXAxisTitleChange(setXAxisTitle)} style={{ width: '100%' }} />
+                    <input type="text" value={xAxisTitle} onChange={handleXAxisTitleChange(setXAxisTitle)} />
                 </div>
 
-                <div className='form-group'>
+                <div className="form-group">
                     <label>Y Axis Title:</label>
-                    <input type="text" value={yAxisTitle} onChange={handleYAxisTitleChange(setYAxisTitle)} style={{ width: '100%' }} />
+                    <input type="text" value={yAxisTitle} onChange={handleYAxisTitleChange(setYAxisTitle)} />
                 </div>
 
-                <div className='form-group'>
+                <div className="form-group">
                     <label>Z Axis Title:</label>
-                    <input type="text" value={zAxisTitle} onChange={handleZAxisTitleChange(setZAxisTitle)} style={{ width: '100%' }} />
+                    <input type="text" value={zAxisTitle} onChange={handleZAxisTitleChange(setZAxisTitle)} />
                 </div>
 
-                
-                <div className='form-group'>
+                <div className="form-group">
                     <label>Chart Type:</label>
                     <select value={chartType} onChange={handleGlobalChartTypeChange(setChartTypes, setTraceConfigs, setChartType)}>
-                        <option value="Line">Line</option>
-                        <option value="Bar">Bar</option>
-                        <option value="Pie">Pie</option>
-                        <option value="ScatterPolar">Radar</option>
-                        <option value="Violin">Violin</option>
-                        <option value="Box">Box</option>
-                        <option value="Histogram">Histogram</option>
-                        <option value="Heatmap">Heatmap</option>
+                    <option value="Line">Line</option>
+                    <option value="Bar">Bar</option>
+                    <option value="Pie">Pie</option>
+                    <option value="ScatterPolar">Radar</option>
+                    <option value="Violin">Violin</option>
+                    <option value="Box">Box</option>
+                    <option value="Histogram">Histogram</option>
+                    <option value="Heatmap">Heatmap</option>
                     </select>
                 </div>
-                
 
-                <div className='form-group'>
+                <div className="form-group">
                     <button onClick={handlePrintTrace}>View Trace Config</button>
                 </div>
             </section>
+
             
             {/* Container for Plotly Chart and Bar Global Customization */}
             <div style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -650,27 +662,69 @@ const DataVis = () => {
                         </div>
                     )}
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <button onClick={handleSave}>
+                        <Button 
+                            onClick={handleSave} 
+                            variant="outlined"
+                            color="primary"
+                            disabled={traceConfigs.length === 0}>
                             Save Visualization
-                        </button>
-
-                        <button onClick={handleUpdate}>
+                        </Button>
+                        <Button 
+                            onClick={handleUpdate} 
+                            variant="outlined"
+                            color="secondary"
+                            disabled={!savedVisualizationId}>
                             Update Visualization
-                        </button>
+                        </Button>
+                        <Button 
+                            onClick={handleDelete}
+                            variant="outlined"
+                            color="error"
+                            disabled={!savedVisualizationId}
+                        >
+                            Delete Visualization
+                        </Button>
+
 
                         {/* ✅ Show success message when saved */}
-                        {saveSuccess && (
+                        {saveSuccess === "saved" && (
                             <div style={{
                                 padding: "5px",
                                 backgroundColor: "#d4edda",
                                 color: "#155724",
                                 border: "1px solid #c3e6cb",
                                 borderRadius: "5px",
-                                whiteSpace: "nowrap" // ✅ Ensures text stays on one line
+                                whiteSpace: "nowrap"
                             }}>
                                 ✔ Saved Successfully!
                             </div>
                         )}
+                        {saveSuccess === "updated" && (
+                            <div style={{
+                                padding: "5px",
+                                backgroundColor: "#d4edda",
+                                color: "#155724",
+                                border: "1px solid #c3e6cb",
+                                borderRadius: "5px",
+                                whiteSpace: "nowrap"
+                            }}>
+                                ✔ Updated Successfully!
+                            </div>
+                        )}
+
+                        {saveSuccess === "error" && (
+                            <div style={{
+                                padding: "5px",
+                                backgroundColor: "#f8d7da",
+                                color: "#721c24",
+                                border: "1px solid #f5c6cb",
+                                borderRadius: "5px",
+                                whiteSpace: "nowrap"
+                            }}>
+                                ✖ Failed.
+                            </div>
+                        )}
+
                     </div>
                 </section>
 
@@ -791,5 +845,4 @@ const DataVis = () => {
     </div>
     );
 };
-
 export default DataVis;

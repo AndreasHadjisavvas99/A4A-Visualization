@@ -1,11 +1,51 @@
 import { sendGraphQLRequest } from "./utils";
 
+export const getVisualizationQuery = `
+query getVisualization($id: ID!) { 
+    visualization(id: $id) { 
+        id
+        name
+        analysisGoal
+        splitBy
+        axisLabels
+        layout { 
+            __typename  
+            ... on Bar {
+                id bookmark bargap barmode color hasText opacity orientation traceName
+            }
+            ... on Line {
+                id bookmark color fill mode opacity orientation traceName
+            }
+            ... on Pie {
+                id bookmark opacity palette traceName hole
+            }
+            ... on Histogram {
+                id bookmark bargap barmode color opacity orientation traceName
+            }
+            ... on ScatterPolar {
+                id bookmark color fill opacity traceName
+            }
+            ... on Box {
+                id bookmark boxmean boxpoints color jitter opacity orientation traceName
+            }
+            ... on Violin {
+                id bookmark box color meanline opacity traceName
+            }
+            ... on Heatmap {
+                id bookmark opacity traceName
+            }
+        }
+    } 
+}`;
+
+
 const layoutFetchMap = {
     Bar: `
         query {
             allBars {
                 id
                 traceName
+                templateName
                 bookmark
                 opacity
                 color
@@ -21,6 +61,7 @@ const layoutFetchMap = {
             allLines {
                 id
                 traceName
+                templateName
                 bookmark
                 opacity
                 color
@@ -34,6 +75,7 @@ const layoutFetchMap = {
             allPies {
                 id
                 traceName
+                templateName
                 bookmark
                 palette
                 opacity
@@ -46,6 +88,7 @@ const layoutFetchMap = {
             allScatterpolars {
                 id
                 traceName
+                templateName
                 bookmark
                 opacity
                 color
@@ -58,6 +101,7 @@ const layoutFetchMap = {
             allViolins {
                 id
                 traceName
+                templateName
                 bookmark
                 opacity
                 color
@@ -71,6 +115,7 @@ const layoutFetchMap = {
             allBoxes {
                 id
                 traceName
+                templateName
                 bookmark
                 opacity
                 color
@@ -86,6 +131,7 @@ const layoutFetchMap = {
             allHistograms {
                 id
                 traceName
+                templateName
                 bookmark
                 opacity
                 color
@@ -100,6 +146,7 @@ const layoutFetchMap = {
             allHeatmaps {
                 id
                 traceName
+                templateName
                 bookmark
                 opacity
             }
@@ -115,6 +162,7 @@ const mutationMap = {
                 bar {
                     id
                     traceName
+                    templateName
                     bookmark
                     opacity
                     color
@@ -133,6 +181,7 @@ const mutationMap = {
                 line {
                     id
                     traceName
+                    templateName
                     bookmark
                     opacity
                     color
@@ -149,6 +198,7 @@ const mutationMap = {
                 pie {
                     id
                     traceName
+                    templateName
                     bookmark
                     palette
                     opacity
@@ -164,6 +214,7 @@ const mutationMap = {
                 scatterpolar {
                     id
                     traceName
+                    templateName
                     bookmark
                     opacity
                     color
@@ -179,6 +230,7 @@ const mutationMap = {
                 violin {
                     id
                     traceName
+                    templateName
                     bookmark
                     opacity
                     color
@@ -195,6 +247,7 @@ const mutationMap = {
                 box {
                     id
                     traceName
+                    templateName
                     bookmark
                     opacity
                     color
@@ -213,6 +266,7 @@ const mutationMap = {
                 histogram {
                     id
                     traceName
+                    templateName
                     bookmark
                     opacity
                     color
@@ -230,6 +284,7 @@ const mutationMap = {
                 heatmap {
                     id
                     traceName
+                    templateName
                     bookmark
                     opacity
                 }
@@ -394,6 +449,14 @@ const createVisualizationMutation = `
   }
 }`;
 
+export const deleteVisualizationMutation = `
+  mutation deleteVisualization($id: ID!) {
+    deleteVisualization(id: $id) {
+        success
+    }
+  }
+`;
+
 export const updateVisualizationMutation = `
   mutation UpdateVisualization($id: ID!, $data: VisualizationInput!) {
     updateVisualization(id: $id, data: $data) {
@@ -414,46 +477,56 @@ export const handleSaveVisualization = async (
     chartTypes,
     sendGraphQLRequest,
     customTitle,
-    columnNames,
+    xAxisTitle,yAxisTitle,zAxisTitle,
     splitTitle,
+    existingVisId = null
 ) => {
     let layoutIds = [];
     let layoutCreationSucceeded = true;
 
     for (let i = 0; i < traceConfigs.length; i++) {
-        const mutation = mutationMap[chartTypes[i]];
-        const variables = { data: traceConfigs[i] };
+      const { templateName, ...cleanedTrace } = traceConfigs[i]; // ⬅️ remove templateName
 
-        try {
-            const result = await sendGraphQLRequest(mutation, variables);
-            if (result) {
-                const key = Object.keys(result.data)[0];
-                const createResponse = result.data[key];
-                const layoutData =
-                    createResponse.line ||
-                    createResponse.bar ||
-                    createResponse.pie ||
-                    createResponse.scatterpolar ||
-                    createResponse.violin ||
-                    createResponse.box ||
-                    createResponse.histogram ||
-                    createResponse.heatmap;
+      const trace = {
+        ...cleanedTrace,
+        ...(existingVisId ? {} : { id: undefined })
+      };
 
-                if (createResponse.success && layoutData && layoutData.id) {
-                    const layoutId = layoutData.id;
-                    layoutIds.push(layoutId);
-                } else {
-                    console.error("❌ Missing ID in response:", createResponse);
-                    layoutCreationSucceeded = false;
-                }
-            } else {
-                console.error("❌ No data in response:", result);
-                layoutCreationSucceeded = false;
-            }
-        } catch (error) {
-            console.error("❌ Error during GraphQL request:", error);
-            layoutCreationSucceeded = false;
-        }
+      const mutation = mutationMap[chartTypes[i]];
+      const variables = { data: trace };
+        
+      try {
+          const result = await sendGraphQLRequest(mutation, variables);
+          if (result) {
+              const key = Object.keys(result.data)[0];
+              const createResponse = result.data[key];
+              const layoutData =
+                  createResponse.line ||
+                  createResponse.bar ||
+                  createResponse.pie ||
+                  createResponse.scatterpolar ||
+                  createResponse.violin ||
+                  createResponse.box ||
+                  createResponse.histogram ||
+                  createResponse.heatmap;
+
+              if (createResponse.success && layoutData && layoutData.id) {
+                  const layoutId = layoutData.id;
+                  layoutIds.push(layoutId);
+
+                  traceConfigs[i].id = layoutId; //update the trace with the layout id
+              } else {
+                  console.error("❌ Missing ID in response:", createResponse);
+                  layoutCreationSucceeded = false;
+              }
+          } else {
+              console.error("❌ No data in response:", result);
+              layoutCreationSucceeded = false;
+          }
+      } catch (error) {
+          console.error("❌ Error during GraphQL request:", error);
+          layoutCreationSucceeded = false;
+      }
     }
     if (!layoutCreationSucceeded || layoutIds.length === 0) {
         return false; // ❌ Layout creation failed, don’t proceed to visualization
@@ -461,13 +534,14 @@ export const handleSaveVisualization = async (
 
     const current_date = new Date().toISOString();
     const visualizationDoc = {
-        name: customTitle,
-        axisLabels: [columnNames[0], columnNames[1]],
-        analysisGoal: selectedAnalysis,
-        layout: layoutIds,
-        splitBy: splitTitle,
-        dateCreated: current_date,
-        dateUpdated: current_date,
+      ...(existingVisId && { id: existingVisId }),
+      name: customTitle,
+      axisLabels: [xAxisTitle, yAxisTitle],
+      analysisGoal: selectedAnalysis,
+      layout: layoutIds,
+      splitBy: splitTitle,
+      dateCreated: current_date,
+      dateUpdated: current_date,
     };
     try {
         const visualizationResult = await sendGraphQLRequest(createVisualizationMutation, {
@@ -476,11 +550,10 @@ export const handleSaveVisualization = async (
 
         if (visualizationResult) {
             const createResponse = visualizationResult.data.createVisualization;
-
-            if (createResponse.success) {
-                console.log("Visualization ID:", createResponse.visualization.id);
+            if (createResponse.visualization) {
+                return createResponse.visualization.id;
             } else {
-                console.error("❌ Failed to save visualization:", createResponse);
+                console.error("❌ Faileeeeeeeeed to save visualization:", createResponse);
             }
         } else {
             console.error("❌ No response from server.");
@@ -558,43 +631,45 @@ export const handleUpdateVisualization = async (
   
 
 export const saveTraceToDB = async (trace, chartType) => {
-    const mutation = mutationMap[chartType];
-    const variables = {
-      data: {
-        ...trace,
-        bookmark: true,
-      },
-    };
-  
-    try {
-        const result = await sendGraphQLRequest(mutation, variables);
-        const saved = result?.data?.[`create${chartType}`]?.[chartType.toLowerCase()];
-        return saved || null;
-    } catch (error) {
-        console.error("❌ Error creating trace:", error);
-        return null;
-    }
+  const mutation = mutationMap[chartType];
+  const variables = {
+    data: {
+      ...trace,
+      bookmark: true,
+    },
+  };
+  console.log("variableees", variables);
+  try {
+      const result = await sendGraphQLRequest(mutation, variables);
+      const saved = result?.data?.[`create${chartType}`]?.[chartType.toLowerCase()];
+      return saved || null;
+  } catch (error) {
+      console.error("❌ Error creating trace:", error);
+      return null;
+  }
 };
   
 
-export const updateTraceInDB = async (trace, chartType) => {
-    const mutation = updateMutationMap[chartType];
-    const variables = {
-        id: trace.id, // ✅ required by your GraphQL schema
-        data: {
-          ...trace,
-        },
-    };
-      
+export const updateTraceInDB = async (selectedTrace, trace, chartType) => {
+  console.log(selectedTrace);
+  const mutation = updateMutationMap[chartType];
+  const { id, ...traceWithoutId } = trace;
+  const variables = {
+    id: selectedTrace,
+    data: {
+      ...traceWithoutId,
+      bookmark: true,  
+    },
+  };
 
-    try {
-        const result = await sendGraphQLRequest(mutation, variables);
-        console.log(result);
-        return !!result?.data?.[`update${chartType}`];
-    } catch (error) {
-        console.error("❌ Error updating trace:", error);
-        return false;
-    }
+  try {
+      const result = await sendGraphQLRequest(mutation, variables);
+      console.log(result);
+      return !!result?.data?.[`update${chartType}`];
+  } catch (error) {
+      console.error("❌ Error updating trace:", error);
+      return false;
+  }
 };
   
 export const deleteTraceFromDB = async (id, chartType) => {
@@ -606,6 +681,7 @@ export const deleteTraceFromDB = async (id, chartType) => {
         }
     `;
     const variables = { id };
+    console.log("variables", variables);
     
     try {
         const result = await sendGraphQLRequest(mutation, variables);
@@ -627,6 +703,7 @@ export const fetchLayoutsByType = async (chartType) => {
 
     try {
         const result = await sendGraphQLRequest(query, {});
+        console.log("aaaaaaaaaaaaaaaaaaaaaaaaa", result);
         if (result?.data) {
             const key = Object.keys(result.data)[0]; // Get the first key dynamically
             return result.data[key]; // Return fetched layouts

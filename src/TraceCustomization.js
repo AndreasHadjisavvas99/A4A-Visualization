@@ -36,27 +36,29 @@ const TraceCustomization = ({
             return;
         }
         const newTrace = {
+            
             ...config,
             id: undefined,   
             bookmark: true,   
-          };
+            templateName: config.templateName || "Unnamed Template",
+        };
         const result = await saveTraceToDB(newTrace, chartType);
-        console.log("aa", result);
         if (result?.id) {
-            handleChange(index, "id", result.id);
-            handleChange(index, "bookmark", true);
+            // removed so selected bookmark only works as a template
+            //handleChange(index, "id", result.id);
+            //handleChange(index, "bookmark", true);
             await fetchAndSetTraces();
         }
     };
       
     const handleUpdateTrace = async (config, chartType, index) => {    
-        const result = await updateTraceInDB(config, chartType);
+        const selectedTraceId = selectedTrace;
+        const result = await updateTraceInDB(selectedTraceId, config, chartType);
         await fetchAndSetTraces();
-        console.log(result);
     };
 
     const handleDeleteTrace = async (config, chartType, index) => {
-        const success = await deleteTraceFromDB(config.id, chartType);
+        const success = await deleteTraceFromDB(selectedTrace, chartType);
         if (success) {
             handleChange(index, "id", undefined);
             handleChange(index, "bookmark", false);
@@ -87,17 +89,18 @@ const TraceCustomization = ({
     
         console.log(`✅ Applying Trace Config to Index ${traceIndex}:`, selectedTraceConfig);
     
-        // 🔄 Update only the **specific** trace, keeping others unchanged
+        // Apply new config but preserve the old ID/bookmark
         setTraceConfigs((prevConfigs) =>
             prevConfigs.map((config, index) => {
                 if (index === traceIndex) {
                     return {
-                        ...selectedTraceConfig,  // ✅ Apply saved trace properties
-                        traceName: config.traceName, // ✅ Keep original name
-                        id: selectedTraceConfig.id  // ✅ Assign the ID from the saved trace
+                        ...config,                         // keep existing ID and bookmark
+                        ...selectedTraceConfig,            // override everything else
+                        id: config.id,                     // force keep Layout A reference
+                        bookmark: config.bookmark || false,
                     };
                 }
-                return config; // ✅ Leave all other traces unchanged
+                return config;
             })
         );
     };
@@ -111,7 +114,7 @@ const TraceCustomization = ({
 
             // Preserve only the valid attributes for the selected chart type
             const filteredConfig = Object.keys(config)
-                .filter(key => allowedAttributes.has(key) || key === 'traceName' || key === 'color' || key === 'bookmark')
+                .filter(key => allowedAttributes.has(key) || key === 'traceName' || key === 'color' || key === 'bookmark' || key === 'id')
                 .reduce((acc, key) => {
                     acc[key] = config[key];
                     return acc;
@@ -134,10 +137,8 @@ const TraceCustomization = ({
         const newSavedTraces = {};
         for (const chartType of new Set(chartTypes)) {
             const traces = await fetchLayoutsByType(chartType); // ✅ Fetch traces
-            console.log(traces);
             newSavedTraces[chartType] = traces.filter(trace => trace.bookmark === true); // ✅ Store traces
         }
-
         setSavedTraces(newSavedTraces);
     };
 
@@ -180,14 +181,14 @@ const TraceCustomization = ({
             {traceConfigs.map((traceConfig, index) => {
                 const { chartType, traceName, bookmark, color, palette, opacity, barmode, bargap, hasText, orientation, mode, fill, boxpoints, boxmean, jitter, meanline, box, hole } = traceConfig;
                 return (
-                    <Accordion key={index} sx={{ mb: 2}}>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Accordion key={index} sx={{ mb: 2, border: '1px solid #e0e0e0', borderRadius: 2, boxShadow: 'none' }}>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ backgroundColor: '#f9f9f9' }}>
                             <Typography variant="h6">
                                 Trace {index + 1}: {traceConfig.traceName || "Untitled"}
                             </Typography>
                         </AccordionSummary>
                         <AccordionDetails>
-                            <Card sx={{ boxShadow: 3, borderRadius: 2 }}>
+                            <Card sx={{ boxShadow: 'none', borderRadius: 2, border: '1px solid #eee' }}>
                                 <CardContent>
                                     <Grid container spacing={2}>
                                         {/* Trace Label*/}
@@ -528,39 +529,48 @@ const TraceCustomization = ({
                                             </>
                                         )}
                                         
-                                        {/* 💾 Save Button */}
                                         <Grid item xs={12}>
-                                            <Stack direction="row" spacing={2}>
+                                            <Stack direction="row" spacing={2} justifyContent="flex-start">
                                                 {/* Save Button */}
                                                 <Button
                                                     variant={traceConfig.bookmark ? "contained" : "outlined"}
                                                     color="primary"
                                                     onClick={() => handleSaveTrace(traceConfig, chartTypes[index], index)}
-                                                    //disabled={traceConfig.bookmark}
-                                                >
-                                                    💾 Save Trace
+                                                    size="small"
+                                                    >
+                                                    Save
                                                 </Button>
-
                                                 {/* Update Button */}
                                                 <Button
                                                     variant="outlined"
                                                     color="secondary"
                                                     onClick={() => handleUpdateTrace(traceConfig, chartTypes[index], index)}
-                                                    disabled={!traceConfig.bookmark}
-                                                >
-                                                    🔄 Update Trace
+                                                    disabled={selectedTrace === "none" || !selectedTrace}
+                                                    size="small"
+                                                    >
+                                                    Update
                                                 </Button>
+
+                                                {/* Delete Button */}
                                                 <Button
                                                     variant="outlined"
                                                     color="error"
                                                     onClick={() => handleDeleteTrace(traceConfig, chartTypes[index], index)}
-                                                    disabled={!traceConfig.bookmark}
+                                                    disabled={selectedTrace === "none" || !selectedTrace}
+                                                    size="small"
                                                     >
-                                                    Delete Trace
-                                                    </Button>
+                                                    Delete
+                                                </Button>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Template Name"
+                                                    variant="outlined"
+                                                    value={traceConfig.templateName || ""}
+                                                    onChange={(e) => handleChange(index, "templateName", e.target.value)}
+                                                />
                                             </Stack>
-
                                         </Grid>
+
                                         {/* 🔻 Load Saved Trace Dropdown */}
                                         <Grid item xs={12} sm={6}>
                                             <FormControl fullWidth>
@@ -581,7 +591,7 @@ const TraceCustomization = ({
                                                     {Object.entries(savedTraces).map(([chartType, traces]) =>
                                                         traces.map((trace) => (
                                                             <MenuItem key={trace.id} value={trace.id}>
-                                                                {trace.id} {/* ✅ Display ID as name */}
+                                                                {trace.templateName || trace.id}
                                                             </MenuItem>
                                                         ))
                                                     )}
