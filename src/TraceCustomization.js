@@ -364,7 +364,6 @@ const TraceCustomization = ({
                                                                 const selectedPalette = e.target.value;
                                                                 handleChange(index, "palette", selectedPalette);
                                                             }}
-                                                            displayEmpty
                                                             fullWidth
                                                         >
                                                             {/* Default Custom Option */}
@@ -381,10 +380,6 @@ const TraceCustomization = ({
                                                         </Select>
                                                     </FormControl>
                                                 </Grid>
-
-
-
-
                                                 {/* Pie hole */}
                                                 <Grid item xs={12} sm={6}>
                                                     <Typography>Hole</Typography>

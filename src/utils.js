@@ -97,8 +97,8 @@ export const sendGraphQLRequest = async (query, variables = {}) => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                query,         // ✅ Include the GraphQL query/mutation
-                variables,     // ✅ Include the variables
+                query,         
+                variables,     
             }),
         });
 
@@ -108,5 +108,3 @@ export const sendGraphQLRequest = async (query, variables = {}) => {
         return null;
     }
 };
-
-

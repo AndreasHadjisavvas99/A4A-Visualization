@@ -222,6 +222,8 @@ const DataVis = () => {
             await sendGraphQLRequest(deleteVisualizationMutation, { id: savedVisualizationId });
             fetchVisualizationOptions();
             setSavedVisualizationId(null);
+            setSaveSuccess("deleted");
+            setTimeout(() => setSaveSuccess(null), 3000);
         } catch {
             console.log(error);
         }
@@ -711,7 +713,18 @@ const DataVis = () => {
                                 ✔ Updated Successfully!
                             </div>
                         )}
-
+                        {saveSuccess === "deleted" && (
+                            <div style={{
+                                padding: "5px",
+                                backgroundColor: "#f8d7da",
+                                color: "#721c24",
+                                border: "1px solid #f5c6cb",
+                                borderRadius: "5px",
+                                whiteSpace: "nowrap"
+                            }}>
+                                Deleted Successfully!
+                            </div>
+                        )}
                         {saveSuccess === "error" && (
                             <div style={{
                                 padding: "5px",
