@@ -197,37 +197,43 @@ const DataVis = () => {
 
     const handleDelete = async () => {
         try {
-            // Step 1: Get layout references
-            const variables = { id: savedVisualizationId };
-            const visResult = await sendGraphQLRequest(getVisualizationQuery, variables);
-            const layouts = visResult?.data?.visualization?.layout || [];
-
-            // Step 1: Delete layouts
-            for (const layout of layouts) {
-                if (!layout.bookmark) {
-                  const deleteMutation = `
-                    mutation deleteLayout($id: ID!) {
-                      delete${layout.__typename}(id: $id) {
-                        success
-                      }
-                    }
-                  `;
-              
-                  console.log(`Deleting ${layout.__typename} layout with ID: ${layout.id}`);
-                  await sendGraphQLRequest(deleteMutation, { id: layout.id });
+          // Step 1: Get layout references
+          const variables = { id: savedVisualizationId };
+          const visResult = await sendGraphQLRequest(getVisualizationQuery, variables);
+          console.log("result ", visResult);
+          const layouts = visResult?.data?.visualization?.layout || [];
+      
+          // Step 2: Delete layouts
+          for (const layout of layouts) {
+            if (!layout.bookmark) {
+              const deleteMutation = `
+                mutation DeleteLayout($id: String!) {
+                  deleteLayout(id: $id)
                 }
-              }
-
-            // Step 3: Delete visualization
-            await sendGraphQLRequest(deleteVisualizationMutation, { id: savedVisualizationId });
-            fetchVisualizationOptions();
-            setSavedVisualizationId(null);
-            setSaveSuccess("deleted");
-            setTimeout(() => setSaveSuccess(null), 3000);
-        } catch {
-            console.log(error);
+              `;
+      
+              console.log(`Deleting layout with ID: ${layout}`);
+              const response = await sendGraphQLRequest(deleteMutation, { id: layout.id });
+              console.log("Layout deletion response:", response);
+            }
+          }
+      
+          // Step 3: Delete the visualization
+          const visDeleteRes = await sendGraphQLRequest(deleteVisualizationMutation, {
+            id: savedVisualizationId,
+          });
+      
+          console.log("Visualization deletion response:", visDeleteRes);
+      
+          fetchVisualizationOptions();
+          setSavedVisualizationId(null);
+          setSaveSuccess("deleted");
+          setTimeout(() => setSaveSuccess(null), 3000);
+        } catch (error) {
+          console.error("❌ Error in handleDelete:", error);
         }
-    };
+      };
+      
 
           
       
@@ -312,8 +318,6 @@ const DataVis = () => {
                 bookmark: false,
             };
         });
-        
-        console.log(traces);
     
         // Apply extracted data to the state
         setXAxisTitle(xAxisTitle);
@@ -333,7 +337,7 @@ const DataVis = () => {
     
         const query = `
         query qAllVisualizations { 
-            allVisualizations { 
+            visualizations { 
                 id
                 name
             } 
@@ -342,8 +346,8 @@ const DataVis = () => {
         try {
             const result = await sendGraphQLRequest(query, {});
     
-            if (result?.data?.allVisualizations) {
-                setVisualizationOptions(result.data.allVisualizations);
+            if (result?.data?.visualizations) {
+                setVisualizationOptions(result.data.visualizations);
             } else {
                 setError("No visualizations found.");
             }
@@ -364,16 +368,15 @@ const DataVis = () => {
         try {
             const variables = { id: selectedVisualization };
             const result = await sendGraphQLRequest(getVisualizationQuery, variables);
-
-    
+            console.log("aaa", result);
             if (result?.data?.visualization) {
                 const vizData = result.data.visualization;
                 const id = result.data.visualization.id;
                 setSavedVisualizationId(id);
-                
                 setSelectedAnalysis(vizData.analysisGoal);
                 fetchAnalysisResults();
                 const extractedPlotTypes = vizData.layout.map((trace) => trace.__typename);
+                
                 const splitField = vizData.splitBy || "Default";
                 const selectedXAxis = vizData.axisLabels[0];
                 const selectedYAxis = vizData.axisLabels[1];
@@ -437,7 +440,7 @@ const DataVis = () => {
         
         const query = `
         query qAllAnalysis { 
-            allAnalysis { 
+            analyses { 
                 id 
                 analyticsGoal 
             } 
@@ -446,8 +449,8 @@ const DataVis = () => {
         try {
             const result = await sendGraphQLRequest(query, {});
             
-            if (result?.data?.allAnalysis) {
-                setAnalysisOptions(result.data.allAnalysis);
+            if (result?.data?.analyses) {
+                setAnalysisOptions(result.data.analyses);
             } else {
                 setError("No analysis options found.");
             }

@@ -43,12 +43,7 @@ const TraceCustomization = ({
             templateName: config.templateName || "Unnamed Template",
         };
         const result = await saveTraceToDB(newTrace, chartType);
-        if (result?.id) {
-            // removed so selected bookmark only works as a template
-            //handleChange(index, "id", result.id);
-            //handleChange(index, "bookmark", true);
-            await fetchAndSetTraces();
-        }
+        await fetchAndSetTraces();
     };
       
     const handleUpdateTrace = async (config, chartType, index) => {    
@@ -64,6 +59,7 @@ const TraceCustomization = ({
             handleChange(index, "bookmark", false);
             await fetchAndSetTraces();
         }
+        setSelectedTrace("none");
     };
       
     const handleLoadSavedTrace = (selectedTraceId, traceIndex) => {

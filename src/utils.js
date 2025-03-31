@@ -93,12 +93,12 @@ export const extractData = (f) => {
 
 export const sendGraphQLRequest = async (query, variables = {}) => {
     try {
-        const response = await fetch("http://127.0.0.1:8081/fiko", {
+        const response = await fetch("http://localhost:8000/fiko/graphql", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                query,         
-                variables,     
+                query,
+                variables,
             }),
         });
 

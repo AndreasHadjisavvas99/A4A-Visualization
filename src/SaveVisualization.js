@@ -1,7 +1,7 @@
 import { sendGraphQLRequest } from "./utils";
 
 export const getVisualizationQuery = `
-query getVisualization($id: ID!) { 
+query getVisualization($id: String!) { 
     visualization(id: $id) { 
         id
         name
@@ -39,10 +39,12 @@ query getVisualization($id: ID!) {
 }`;
 
 
-const layoutFetchMap = {
+
+
+export const layoutFetchMap = {
     Bar: `
         query {
-            allBars {
+            bars {
                 id
                 traceName
                 templateName
@@ -58,7 +60,7 @@ const layoutFetchMap = {
     `,
     Line: `
         query {
-            allLines {
+            lines {
                 id
                 traceName
                 templateName
@@ -72,7 +74,7 @@ const layoutFetchMap = {
     `,
     Pie: `
         query {
-            allPies {
+            pies {
                 id
                 traceName
                 templateName
@@ -85,7 +87,7 @@ const layoutFetchMap = {
     `,
     ScatterPolar: `
         query {
-            allScatterpolars {
+            scatterPolars {
                 id
                 traceName
                 templateName
@@ -98,7 +100,7 @@ const layoutFetchMap = {
     `,
     Violin: `
         query {
-            allViolins {
+            violins {
                 id
                 traceName
                 templateName
@@ -112,7 +114,7 @@ const layoutFetchMap = {
     `,
     Box: `
         query {
-            allBoxes {
+            boxes {
                 id
                 traceName
                 templateName
@@ -128,7 +130,7 @@ const layoutFetchMap = {
     `,
     Histogram: `
         query {
-            allHistograms {
+            histograms {
                 id
                 traceName
                 templateName
@@ -143,7 +145,7 @@ const layoutFetchMap = {
     `,
     Heatmap: `
         query {
-            allHeatmaps {
+            heatmaps {
                 id
                 traceName
                 templateName
@@ -156,288 +158,222 @@ const layoutFetchMap = {
 
 const mutationMap = {
     Bar: `
-        mutation createBar($data: BarInput!) {
-            createBar(data: $data) {
-                success
-                bar {
-                    id
-                    traceName
-                    templateName
-                    bookmark
-                    opacity
-                    color
-                    barmode
-                    bargap
-                    orientation
-                    hasText
-                }
-            }
+      mutation createBar($input: BarInput!) {
+        createBar(input: $input) {
+          id
+          traceName
+          templateName
+          bookmark
+          opacity
+          color
+          barmode
+          bargap
+          orientation
+          hasText
         }
+      }
     `,
     Line: `
-        mutation createLine($data: LineInput!) {
-            createLine(data: $data) {
-                success
-                line {
-                    id
-                    traceName
-                    templateName
-                    bookmark
-                    opacity
-                    color
-                    mode
-                    fill
-                }
-            }
+      mutation createLine($input: LineInput!) {
+        createLine(input: $input) {
+          id
+          traceName
+          templateName
+          bookmark
+          opacity
+          color
+          mode
+          fill
         }
+      }
     `,
     Pie: `
-        mutation createPie($data: PieInput!) {
-            createPie(data: $data) {
-                success
-                pie {
-                    id
-                    traceName
-                    templateName
-                    bookmark
-                    palette
-                    opacity
-                    hole
-                }
-            }
-        }
+      mutation createPie($input: PieInput!) {
+  createPie(input: $input) {
+    id
+    traceName
+    templateName
+    bookmark
+    palette
+    opacity
+    hole
+  }
+}
+
     `,
     ScatterPolar: `
-        mutation createScatterpolar($data: ScatterPolarInput!) {
-            createScatterpolar(data: $data) {
-                success
-                scatterpolar {
-                    id
-                    traceName
-                    templateName
-                    bookmark
-                    opacity
-                    color
-                    fill
-                }
-            }
+      mutation createScatterpolar($input: ScatterPolarInput!) {
+        createScatterpolar(input: $input) {
+          id
+          traceName
+          templateName
+          bookmark
+          opacity
+          color
+          fill
         }
+      }
     `,
     Violin: `
-        mutation createViolin($data: ViolinInput!) {
-            createViolin(data: $data) {
-                success
-                violin {
-                    id
-                    traceName
-                    templateName
-                    bookmark
-                    opacity
-                    color
-                    meanline
-                    box
-                }
-            }
+      mutation createViolin($input: ViolinInput!) {
+        createViolin(input: $input) {
+          id
+          traceName
+          templateName
+          bookmark
+          opacity
+          color
+          meanline
+          box
         }
+      }
     `,
     Box: `
-        mutation createBox($data: BoxInput!) {
-            createBox(data: $data) {
-                success
-                box {
-                    id
-                    traceName
-                    templateName
-                    bookmark
-                    opacity
-                    color
-                    orientation
-                    boxpoints
-                    jitter
-                    boxmean
-                }
-            }
+      mutation createBox($input: BoxInput!) {
+        createBox(input: $input) {
+          id
+          traceName
+          templateName
+          bookmark
+          opacity
+          color
+          orientation
+          boxpoints
+          jitter
+          boxmean
         }
+      }
     `,
     Histogram: `
-        mutation createHistogram($data: HistogramInput!) {
-            createHistogram(data: $data) {
-                success
-                histogram {
-                    id
-                    traceName
-                    templateName
-                    bookmark
-                    opacity
-                    color
-                    orientation
-                    barmode
-                    bargap
-                }
-            }
+      mutation createHistogram($input: HistogramInput!) {
+        createHistogram(input: $input) {
+          id
+          traceName
+          templateName
+          bookmark
+          opacity
+          color
+          orientation
+          barmode
+          bargap
         }
+      }
     `,
     Heatmap: `
-        mutation createHeatmap($data:HeatmapInput!) {
-            createHeatmap(data: $data) {
-                success
-                heatmap {
-                    id
-                    traceName
-                    templateName
-                    bookmark
-                    opacity
-                }
-            }
+      mutation createHeatmap($input:HeatmapInput!) {
+        createHeatmap(input: $input) {
+          id
+          traceName
+          templateName
+          bookmark
+          opacity
         }
+      }
     `,
 };
+
 const updateMutationMap = {
-    Bar: `
-      mutation updateBar($id: ID!, $data: BarInput!) {
-        updateBar(id: $id, data: $data) {
-          success
-          bar {
-            id
-            traceName
-            opacity
-            color
-            barmode
-            bargap
-            orientation
-            hasText
-          }
-        }
+  Bar: `
+    mutation updateBar($id: String!, $input: BarInput!) {
+      updateBar(id: $id, input: $input) {
+        id
+        traceName
+        opacity
+        color
+        barmode
+        bargap
+        orientation
+        hasText
       }
-    `,
-    Line: `
-      mutation updateLine($id: ID!, $data: LineInput!) {
-        updateLine(id: $id, data: $data) {
-          success
-          line {
-            id
-            traceName
-            opacity
-            color
-            mode
-            fill
-          }
-        }
-      }
-    `,
-    Pie: `
-      mutation updatePie($id: ID!, $data: PieInput!) {
-        updatePie(id: $id, data: $data) {
-          success
-          pie {
-            id
-            traceName
-            opacity
-            palette
-            hole
-          }
-        }
-      }
-    `,
-    ScatterPolar: `
-      mutation updateScatterpolar($id: ID!, $data: ScatterPolarInput!) {
-        updateScatterpolar(id: $id, data: $data) {
-          success
-          scatterpolar {
-            id
-            traceName
-            opacity
-            color
-            fill
-          }
-        }
-      }
-    `,
-    Violin: `
-      mutation updateViolin($id: ID!, $data: ViolinInput!) {
-        updateViolin(id: $id, data: $data) {
-          success
-          violin {
-            id
-            traceName
-            opacity
-            color
-            meanline
-            box
-          }
-        }
-      }
-    `,
-    Box: `
-      mutation updateBox($id: ID!, $data: BoxInput!) {
-        updateBox(id: $id, data: $data) {
-          success
-          box {
-            id
-            traceName
-            opacity
-            color
-            orientation
-            boxpoints
-            jitter
-            boxmean
-          }
-        }
-      }
-    `,
-    Histogram: `
-      mutation updateHistogram($id: ID!, $data: HistogramInput!) {
-        updateHistogram(id: $id, data: $data) {
-          success
-          histogram {
-            id
-            traceName
-            opacity
-            color
-            orientation
-            barmode
-            bargap
-          }
-        }
-      }
-    `,
-    Heatmap: `
-      mutation updateHeatmap($id: ID!, $data: HeatmapInput!) {
-        updateHeatmap(id: $id, data: $data) {
-          success
-          heatmap {
-            id
-            traceName
-            opacity
-          }
-        }
-      }
-    `,
-  };
-  
-  
-  
-/*const createVisualizationMutation = `
-    mutation createVisualization($data: VisualizationInput!) {
-        createVisualization(data: $data) {
-            success
-            visualization {
-                id
-                name
-                axisLabels
-                analysisGoal
-                splitBy
-                dateCreated
-                dateUpdated
-            }
-        }
     }
-`; */
+  `,
+  Line: `
+    mutation updateLine($id: String!, $input: LineInput!) {
+      updateLine(id: $id, input: $input) {
+        id
+        traceName
+        color
+        opacity
+        mode
+        fill
+      }
+    }
+  `,
+  Pie: `
+    mutation updatePie($id: String!, $input: PieInput!) {
+      updatePie(id: $id, input: $input) {
+        id
+        traceName
+        opacity
+        palette
+        hole
+      }
+    }
+  `,
+  ScatterPolar: `
+    mutation updateScatterpolar($id: String!, $input: ScatterPolarInput!) {
+      updateScatterpolar(id: $id, input: $input) {
+        id
+        traceName
+        opacity
+        color
+        fill
+      }
+    }
+  `,
+  Violin: `
+    mutation updateViolin($id: String!, $input: ViolinInput!) {
+      updateViolin(id: $id, input: $input) {
+        id
+        traceName
+        opacity
+        color
+        meanline
+        box
+      }
+    }
+  `,
+  Box: `
+    mutation updateBox($id: String!, $input: BoxInput!) {
+      updateBox(id: $id, input: $input) {
+        id
+        traceName
+        opacity
+        color
+        orientation
+        boxpoints
+        jitter
+        boxmean
+      }
+    }
+  `,
+  Histogram: `
+    mutation updateHistogram($id: String!, $input: HistogramInput!) {
+      updateHistogram(id: $id, input: $input) {
+        id
+        traceName
+        opacity
+        color
+        orientation
+        barmode
+        bargap
+      }
+    }
+  `,
+  Heatmap: `
+    mutation updateHeatmap($id: String!, $input: HeatmapInput!) {
+      updateHeatmap(id: $id, input: $input) {
+        id
+        traceName
+        opacity
+      }
+    }
+  `,
+};
 
 const createVisualizationMutation = `
-    mutation CreateVisualization($data: VisualizationInput!) {
-  createVisualization(data: $data) {
-    visualization {
+  mutation CreateVisualization($input: VisualizationInput!) {
+    createVisualization(input: $input) {
       id
       name
       axisLabels
@@ -446,14 +382,11 @@ const createVisualizationMutation = `
       dateCreated
       dateUpdated
     }
-  }
 }`;
 
 export const deleteVisualizationMutation = `
-  mutation deleteVisualization($id: ID!) {
-    deleteVisualization(id: $id) {
-        success
-    }
+  mutation deleteVisualization($id: String!) {
+    deleteVisualization(id: $id) 
   }
 `;
 
@@ -472,98 +405,91 @@ export const updateVisualizationMutation = `
 
 
 export const handleSaveVisualization = async (
-    selectedAnalysis,
-    traceConfigs,
-    chartTypes,
-    sendGraphQLRequest,
-    customTitle,
-    xAxisTitle,yAxisTitle,zAxisTitle,
-    splitTitle,
-    existingVisId = null
+  selectedAnalysis,
+  traceConfigs,
+  chartTypes,
+  sendGraphQLRequest,
+  customTitle,
+  xAxisTitle,yAxisTitle,zAxisTitle,
+  splitTitle,
+  existingVisId = null
 ) => {
-    let layoutIds = [];
-    let layoutCreationSucceeded = true;
+  let layoutIds = [];
+  let layoutCreationSucceeded = true;
 
-    for (let i = 0; i < traceConfigs.length; i++) {
-      const { templateName, ...cleanedTrace } = traceConfigs[i]; // ⬅️ remove templateName
+  for (let i = 0; i < traceConfigs.length; i++) {
+    const { templateName, ...cleanedTrace } = traceConfigs[i]; // ⬅️ remove templateName
 
-      const trace = {
-        ...cleanedTrace,
-        ...(existingVisId ? {} : { id: undefined })
-      };
-
-      const mutation = mutationMap[chartTypes[i]];
-      const variables = { data: trace };
-        
-      try {
-          const result = await sendGraphQLRequest(mutation, variables);
-          if (result) {
-              const key = Object.keys(result.data)[0];
-              const createResponse = result.data[key];
-              const layoutData =
-                  createResponse.line ||
-                  createResponse.bar ||
-                  createResponse.pie ||
-                  createResponse.scatterpolar ||
-                  createResponse.violin ||
-                  createResponse.box ||
-                  createResponse.histogram ||
-                  createResponse.heatmap;
-
-              if (createResponse.success && layoutData && layoutData.id) {
-                  const layoutId = layoutData.id;
-                  layoutIds.push(layoutId);
-
-                  traceConfigs[i].id = layoutId; //update the trace with the layout id
-              } else {
-                  console.error("❌ Missing ID in response:", createResponse);
-                  layoutCreationSucceeded = false;
-              }
-          } else {
-              console.error("❌ No data in response:", result);
-              layoutCreationSucceeded = false;
-          }
-      } catch (error) {
-          console.error("❌ Error during GraphQL request:", error);
-          layoutCreationSucceeded = false;
-      }
-    }
-    if (!layoutCreationSucceeded || layoutIds.length === 0) {
-        return false; // ❌ Layout creation failed, don’t proceed to visualization
-    }
-
-    const current_date = new Date().toISOString();
-    const visualizationDoc = {
-      ...(existingVisId && { id: existingVisId }),
-      name: customTitle,
-      axisLabels: [xAxisTitle, yAxisTitle],
-      analysisGoal: selectedAnalysis,
-      layout: layoutIds,
-      splitBy: splitTitle,
-      dateCreated: current_date,
-      dateUpdated: current_date,
+    const trace = {
+      ...cleanedTrace,
+      ...(existingVisId ? {} : { id: undefined })
     };
+
+    const mutation = mutationMap[chartTypes[i]];
+    const variables = { input: trace };
+      
     try {
-        const visualizationResult = await sendGraphQLRequest(createVisualizationMutation, {
-            data: visualizationDoc,
-        });
+      const result = await sendGraphQLRequest(mutation, variables);
+      if (result) {
+        const key = Object.keys(result.data)[0];
+        const createResponse = result.data[key];
+        
 
-        if (visualizationResult) {
-            const createResponse = visualizationResult.data.createVisualization;
-            if (createResponse.visualization) {
-                return createResponse.visualization.id;
-            } else {
-                console.error("❌ Faileeeeeeeeed to save visualization:", createResponse);
-            }
+        if (createResponse.id) {
+          const layoutId = createResponse.id;
+          layoutIds.push(layoutId);
+          traceConfigs[i].id = layoutId; //update the trace with the layout id
         } else {
-            console.error("❌ No response from server.");
+          console.error("❌ Missing ID in response:", createResponse);
+          layoutCreationSucceeded = false;
         }
+      } else {
+        console.error("❌ No data in response:", result);
+        layoutCreationSucceeded = false;
+      }
     } catch (error) {
-        console.error("❌ Error during visualization save:", error);
+      console.error("❌ Error during GraphQL request:", error);
+      layoutCreationSucceeded = false;
     }
+  }
+  if (!layoutCreationSucceeded || layoutIds.length === 0) {
+    return false; // ❌ Layout creation failed, don’t proceed to visualization
+  }
 
-    console.log("Layout IDs:", layoutIds);
-    return true;
+  const visualizationDoc = {
+    ...(existingVisId && { id: existingVisId }),
+    name: customTitle,
+    axisLabels: [xAxisTitle, yAxisTitle],
+    analysisGoal: selectedAnalysis,
+    layout: layoutIds,
+    splitBy: splitTitle,
+  };
+  try {
+    console.log("Sending mutation for visualization:", createVisualizationMutation);
+    console.log("With variables:", { input: visualizationDoc });
+
+    const visualizationResult = await sendGraphQLRequest(createVisualizationMutation, {
+      input: visualizationDoc,
+    });
+
+    if (visualizationResult) {
+      console.log("Full GraphQL result:", visualizationResult);
+      const createResponse = visualizationResult.data?.createVisualization;
+      if (createResponse?.id) {
+        return createResponse.id;
+      } else {
+        console.error("❌ Failed to save visualization:", createResponse);
+        console.error("❌ Full GraphQL response:", visualizationResult);
+      }
+    } else {
+      console.error("❌ No response from server.");
+    }
+  } catch (error) {
+    console.error("❌ Error during visualization save:", error);
+  }
+
+  console.log("Layout IDs:", layoutIds);
+  return true;
 };
 
 export const handleUpdateVisualization = async (
@@ -633,16 +559,15 @@ export const handleUpdateVisualization = async (
 export const saveTraceToDB = async (trace, chartType) => {
   const mutation = mutationMap[chartType];
   const variables = {
-    data: {
+    input: {
       ...trace,
       bookmark: true,
     },
   };
-  console.log("variableees", variables);
   try {
-      const result = await sendGraphQLRequest(mutation, variables);
-      const saved = result?.data?.[`create${chartType}`]?.[chartType.toLowerCase()];
-      return saved || null;
+    const result = await sendGraphQLRequest(mutation, variables);
+    const saved = result?.input?.[`create${chartType}`]?.[chartType.toLowerCase()];
+    return saved || null;
   } catch (error) {
       console.error("❌ Error creating trace:", error);
       return null;
@@ -651,12 +576,11 @@ export const saveTraceToDB = async (trace, chartType) => {
   
 
 export const updateTraceInDB = async (selectedTrace, trace, chartType) => {
-  console.log(selectedTrace);
   const mutation = updateMutationMap[chartType];
   const { id, ...traceWithoutId } = trace;
   const variables = {
     id: selectedTrace,
-    data: {
+    input: {
       ...traceWithoutId,
       bookmark: true,  
     },
@@ -664,7 +588,6 @@ export const updateTraceInDB = async (selectedTrace, trace, chartType) => {
 
   try {
       const result = await sendGraphQLRequest(mutation, variables);
-      console.log(result);
       return !!result?.data?.[`update${chartType}`];
   } catch (error) {
       console.error("❌ Error updating trace:", error);
@@ -673,24 +596,23 @@ export const updateTraceInDB = async (selectedTrace, trace, chartType) => {
 };
   
 export const deleteTraceFromDB = async (id, chartType) => {
-    const mutation = `
-        mutation Delete${chartType}($id: ID!) {
-            delete${chartType}(id: $id) {
-                success
-            }
-        }
-    `;
-    const variables = { id };
-    console.log("variables", variables);
-    
-    try {
-        const result = await sendGraphQLRequest(mutation, variables);
-        return result?.data?.[`delete${chartType}`]?.success || false;
-    } catch (error) {
-        console.error(`❌ Error deleting ${chartType}:`, error);
-        return false;
-    }
+  const mutation = `
+      mutation Delete${chartType}($id: String!) {
+          delete${chartType}(id: $id)
+      }
+  `;
+
+  const variables = { id };
+
+  try {
+      const result = await sendGraphQLRequest(mutation, variables);
+      return result?.data?.[`delete${chartType}`] || false;
+  } catch (error) {
+      console.error(`❌ Error deleting ${chartType}:`, error);
+      return false;
+  }
 };
+
 
 
 export const fetchLayoutsByType = async (chartType) => {
@@ -703,7 +625,6 @@ export const fetchLayoutsByType = async (chartType) => {
 
     try {
         const result = await sendGraphQLRequest(query, {});
-        console.log("aaaaaaaaaaaaaaaaaaaaaaaaa", result);
         if (result?.data) {
             const key = Object.keys(result.data)[0]; // Get the first key dynamically
             return result.data[key]; // Return fetched layouts
