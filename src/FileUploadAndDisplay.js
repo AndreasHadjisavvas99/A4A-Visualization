@@ -262,7 +262,7 @@ const DataVis = () => {
     };
     
     const handlePrintTrace = (e) => {
-        console.log(traceConfigs);
+        console.log(x_data);
     };
 
     
@@ -368,7 +368,6 @@ const DataVis = () => {
         try {
             const variables = { id: selectedVisualization };
             const result = await sendGraphQLRequest(getVisualizationQuery, variables);
-            console.log("aaa", result);
             if (result?.data?.visualization) {
                 const vizData = result.data.visualization;
                 const id = result.data.visualization.id;

@@ -189,16 +189,16 @@ const mutationMap = {
     `,
     Pie: `
       mutation createPie($input: PieInput!) {
-  createPie(input: $input) {
-    id
-    traceName
-    templateName
-    bookmark
-    palette
-    opacity
-    hole
-  }
-}
+        createPie(input: $input) {
+          id
+          traceName
+          templateName
+          bookmark
+          palette
+          opacity
+          hole
+        }
+      }
 
     `,
     ScatterPolar: `

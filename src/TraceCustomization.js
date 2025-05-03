@@ -22,7 +22,7 @@ const TraceCustomization = ({
     const chartAttributesMap = {
         Bar: new Set(['bookmrk','opacity', 'barmode', 'bargap', 'hasText', 'orientation']),
         Line: new Set(['bookmrk','opacity', 'orientation', 'mode', 'fill']),
-        Pie: new Set(['bookmrk','opacity', 'palette', 'hasText','hole']),
+        Pie: new Set(['bookmrk','opacity', 'palette', 'hole']),
         scatterpolar: new Set(['bookmrk','opacity', 'fill']), // Radar
         Box: new Set(['bookmrk','opacity', 'orientation', 'boxpoints', 'jitter', 'boxmean']),
         Violin: new Set(['bookmrk','opacity', 'meanline', 'box']),
@@ -188,7 +188,7 @@ const TraceCustomization = ({
                                 <CardContent>
                                     <Grid container spacing={2}>
                                         {/* Trace Label*/}
-                                        <Grid item sx={12} sm={6}>
+                                        <Grid item xs={12} sm={6}>
                                             <TextField
                                                     fullWidth
                                                     label="Trace Label"
@@ -311,8 +311,6 @@ const TraceCustomization = ({
                                                         }}
                                                     />
                                                 </Grid>
-
-
                                             </>
                                         )}
                                         {chartTypes[index] === "Line" && (
@@ -322,7 +320,7 @@ const TraceCustomization = ({
                                                     <FormControl fullWidth>
                                                         <InputLabel>Line Mode</InputLabel>
                                                         <Select
-                                                            value={traceConfig.mode || "lines"}
+                                                            value={traceConfig.mode || "lines+markers"}
                                                             onChange={(e) => handleChange(index, "mode", e.target.value)}
                                                         >
                                                             <MenuItem value="markers">Markers</MenuItem>
